@@ -7,7 +7,7 @@ import {
   FileId,
   PrivateKey
 } from "@hashgraph/sdk";
-import { HederaClientManager } from "./config";
+import { HederaClientManager } from "./config.js";
 
 export interface FileConfig {
   memo?: string;
@@ -44,7 +44,8 @@ export class HederaFileService {
     
     // Append remaining chunks if any
     for (let i = 1; i < chunks.length; i++) {
-      await this.appendToFile(fileId, chunks[i]);
+      // Pass the key if it was provided during file creation
+      await this.appendToFile(fileId, chunks[i], config.keys?.[0]);
     }
     
     return fileId;
@@ -170,11 +171,13 @@ export class HederaFileService {
    */
   async storeContractBytecode(
     bytecode: Uint8Array,
-    contractName: string
+    contractName: string,
+    key?: PrivateKey
   ): Promise<string> {
     return this.createFile({
       memo: `Contract: ${contractName}`,
-      contents: bytecode
+      contents: bytecode,
+      keys: key ? [key] : undefined
     });
   }
   

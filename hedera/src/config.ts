@@ -1,5 +1,5 @@
 // src/hedera/config.ts
-import { Client, AccountId, PrivateKey } from "@hashgraph/sdk";
+import { Client, AccountId, PrivateKey, Hbar } from "@hashgraph/sdk";
 
 export interface HederaConfig {
   operatorId: string;
@@ -26,8 +26,8 @@ export class HederaClientManager {
     );
     
     // Set default transaction fees and timeouts
-    client.setDefaultMaxTransactionFee(100); // 100 HBAR
-    client.setMaxQueryPayment(10); // 10 HBAR
+    client.setDefaultMaxTransactionFee(new Hbar(100)); // 100 HBAR
+    client.setMaxQueryPayment(new Hbar(10)); // 10 HBAR
     client.setRequestTimeout(60000); // 60 seconds
     
     this.instance = client;

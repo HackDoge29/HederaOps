@@ -1,6 +1,17 @@
 # HederaOps
 HederaOps is Africa's first comprehensive Distributed Ledger Technology (DLT) operations platform, built on the Hedera network. It unifies healthcare, agriculture, supply chain, and sustainability management into one seamless, interoperable ecosystem.
 
+Testnet Deployments:
+
+ORCHESTRATOR_CONTRACT=0.0.7188405
+AGRICULTURE_CONTRACT=0.0.7188458
+HEALTHCARE_CONTRACT=0.0.7188460
+SUSTAINABILITY_CONTRACT=0.0.7188468
+HOPSToken=0.0.7185179
+AGRIToken=0.0.7185180
+FarmerNFT=0.0.7185181
+CarbonCreditNFT=0.0.7185182
+
 
 ![HederaOps Logo](https://img.shields.io/badge/HederaOps-Africa's%20First%20Integrated%20DLT%20Platform-6667EA?style=for-the-badge)
 

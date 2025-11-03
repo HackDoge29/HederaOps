@@ -1,13 +1,16 @@
 // workflow.ts
 import { 
   HederaClientManager,
-} from "./src/config";
-import { HederaTokenService } from "./src/token-service";
-import { HederaConsensusService } from "./src/consensus-service";
-import { HederaFileService } from "./src/file-service";
-import { HederaSmartContractService } from "./src/smart-contract-service";
-import { PrivateKey, AccountId } from "@hashgraph/sdk";
+} from "./config.js";
+import { HederaTokenService } from "./token-service.js";
+import { HederaConsensusService } from "./consensus-service.js";
+import { HederaFileService } from "./file-service.js";
+import { HederaSmartContractService } from "./smart-contract-service.js";
+import { PrivateKey, AccountId, Client, ContractCreateFlow } from "@hashgraph/sdk";
+import fs from "fs/promises";
+import path from "path";
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -54,6 +57,31 @@ class HederaOpsWorkflow {
     this.fileService = new HederaFileService();
     this.contractService = new HederaSmartContractService();
   }
+
+  /**
+   * Load bytecode from Hardhat artifact
+   */
+private async loadBytecode(contractFile: string, contractName: string): Promise<string> {
+  const artifactsDir = path.join(process.cwd(), '..', 'hedera/artifacts/contracts');  // Fixed: Go up to root
+  const filePath = path.join(artifactsDir, contractFile, `${contractName}.json`);
+  
+  try {
+    const artifact = await fs.readFile(filePath, 'utf8');
+    const parsed = JSON.parse(artifact);
+    // console.log('Parsed Artifacts:', parsed)
+    const bytecode = parsed.bytecode;
+ if (!bytecode) {
+        throw new Error(`No bytecode found in ${filePath}. Check compilation.`);
+      }
+      if (!bytecode.startsWith('0x')) {
+        throw new Error(`Invalid bytecode in ${filePath}: Missing 0x prefix`);
+      }
+      return bytecode;
+  } catch (error) {
+    console.error(`Failed to load bytecode from ${filePath}:`, error);
+    throw new Error(`Could not load bytecode for ${contractName}. Ensure Hardhat compilation is run.`);
+  }
+}
   
   /**
    * Step 1: Create all tokens
@@ -67,7 +95,7 @@ class HederaOpsWorkflow {
       name: "HederaOps Token",
       symbol: "HOPS",
       decimals: 8,
-      initialSupply: 1_000_000_000 * 10**8, // 1 billion
+      initialSupply: 100_000_000, // 100 million tokens (will be 100M * 10^8 smallest units)
       treasury: this.operatorId,
       adminKey: this.operatorKey
     });
@@ -79,7 +107,7 @@ class HederaOpsWorkflow {
       name: "Agriculture Token",
       symbol: "AGRI",
       decimals: 8,
-      initialSupply: 100_000_000 * 10**8, // 100 million
+      initialSupply: 10_000_000, // 10 million tokens
       treasury: this.operatorId,
       adminKey: this.operatorKey
     });
@@ -120,13 +148,13 @@ class HederaOpsWorkflow {
   async deployContracts(): Promise<void> {
     console.log("\n=== Step 2: Deploying Smart Contracts ===\n");
     
-    // In production, these bytecodes would come from compiled contracts
-    const orchestratorBytecode = process.env.ORCHESTRATOR_BYTECODE!;
-    const agricultureBytecode = process.env.AGRICULTURE_BYTECODE!;
-    const healthcareBytecode = process.env.HEALTHCARE_BYTECODE!;
-    const sustainabilityBytecode = process.env.SUSTAINABILITY_BYTECODE!;
+    // Load bytecodes from Hardhat artifacts
+    const orchestratorBytecode = await this.loadBytecode("Orchestrator.sol", "HederaOpsOrchestrator");
+    const agricultureBytecode = await this.loadBytecode("Agriculture.sol", "AgricultureContract");
+    const healthcareBytecode = await this.loadBytecode("Healthcare.sol", "HealthcareContract");
+    const sustainabilityBytecode = await this.loadBytecode("Sustainability.sol", "SustainabilityContract");
     
-    // Deploy Orchestrator
+   // Deploy Orchestrator
     console.log("Deploying Orchestrator Contract...");
     this.resources.orchestratorContractId = await this.contractService.deployOrchestrator(
       orchestratorBytecode,
@@ -211,7 +239,7 @@ class HederaOpsWorkflow {
   /**
    * Step 4: Record harvest workflow
    */
-  async recordHarvestWorkflow(): Promise<void> {
+  async recordHarvestWorkflow(): Promise<string> {
     console.log("\n=== Step 4: Recording Harvest Workflow ===\n");
     
     const harvestData = {
@@ -264,174 +292,10 @@ class HederaOpsWorkflow {
   }
   
   /**
-   * Step 5: Create sales contract and process payment
-   */
-  async salesContractWorkflow(harvestId: string): Promise<void> {
-    console.log("\n=== Step 5: Sales Contract & Payment Workflow ===\n");
-    
-    const buyerId = "0.0.98765"; // Example buyer account
-    const quantity = 1300;
-    const pricePerUnit = 5.5; // $5.50 per kg
-    const totalAmount = quantity * pricePerUnit;
-    
-    // Create sales contract
-    console.log("Creating sales contract...");
-    const contractId = await this.contractService.createSalesContract(
-      this.resources.agricultureContractId!,
-      buyerId,
-      harvestId,
-      quantity,
-      Math.floor(pricePerUnit * 100) // Convert to cents
-    );
-    console.log(`✓ Sales contract created: ${contractId}`);
-    console.log(`  Total amount: $${totalAmount}`);
-    
-    // Simulate buyer depositing escrow
-    console.log("\nBuyer depositing escrow...");
-    await this.contractService.depositEscrow(
-      this.resources.agricultureContractId!,
-      contractId,
-      totalAmount
-    );
-    console.log("✓ Escrow deposited");
-    
-    // In production, delivery and quality would be verified
-    console.log("\nVerifying delivery and quality...");
-    console.log("✓ Delivery confirmed");
-    console.log("✓ Quality verified");
-    
-    // Process payment
-    console.log("\nProcessing payment to farmer...");
-    const farmerPayment = await this.contractService.processPayment(
-      this.resources.agricultureContractId!,
-      contractId
-    );
-    
-    const platformFee = totalAmount * 0.0015; // 0.15%
-    console.log(`✓ Payment processed:`);
-    console.log(`  Farmer received: $${(farmerPayment / 100).toFixed(2)}`);
-    console.log(`  Platform fee: $${platformFee.toFixed(2)}`);
-  }
-  
-  /**
-   * Step 6: Healthcare integration
-   */
-  async healthcareIntegrationWorkflow(): Promise<void> {
-    console.log("\n=== Step 6: Healthcare Integration Workflow ===\n");
-    
-    const monthlyPremium = 50; // $50
-    const coverageLimit = 500000; // $500,000
-    
-    // Create health insurance policy
-    console.log("Creating health insurance policy...");
-    const policyId = await this.contractService.createHealthInsurance(
-      this.resources.healthcareContractId!,
-      "Basic Plan",
-      monthlyPremium * 100, // Convert to cents
-      coverageLimit * 100,
-      true // Enable auto-deduct
-    );
-    console.log(`✓ Insurance policy created: ${policyId}`);
-    console.log(`  Monthly premium: $${monthlyPremium}`);
-    console.log(`  Coverage: $${coverageLimit.toLocaleString()}`);
-    console.log(`  Auto-deduct from farming income: Enabled`);
-    
-    // Submit insurance creation to HCS
-    console.log("\nRecording insurance on HCS...");
-    await this.consensusService.submitMessage(
-      this.resources.farmerTopicId!,
-      {
-        type: "healthcare.insurance_created",
-        entityId: this.operatorId,
-        timestamp: Date.now(),
-        data: {
-          policyId,
-          planType: "Basic Plan",
-          monthlyPremium,
-          coverageLimit,
-          autoDeduct: true
-        }
-      }
-    );
-    console.log("✓ Insurance recorded on HCS");
-    
-    // Simulate healthcare visit
-    console.log("\nRecording healthcare visit...");
-    const facilityId = "0.0.87654"; // Example facility
-    const visitId = await this.contractService.recordHealthcareVisit(
-      this.resources.healthcareContractId!,
-      this.operatorId,
-      facilityId,
-      "Routine checkup",
-      2500 // $25.00
-    );
-    console.log(`✓ Healthcare visit recorded: ${visitId}`);
-    console.log("  Insurance coverage: 80% ($20)");
-    console.log("  Patient payment: 20% ($5)");
-  }
-  
-  /**
-   * Step 7: Sustainability & carbon credits
-   */
-  async sustainabilityWorkflow(): Promise<void> {
-    console.log("\n=== Step 7: Sustainability & Carbon Credits Workflow ===\n");
-    
-    const carbonSequestered = 13.75; // tons CO2
-    const projectType = "organic_coffee_agroforestry";
-    
-    // Award carbon credits
-    console.log("Awarding carbon credits...");
-    const creditId = await this.contractService.awardCarbonCredits(
-      this.resources.sustainabilityContractId!,
-      this.operatorId,
-      Math.floor(carbonSequestered * 1000), // Convert to kg
-      projectType
-    );
-    console.log(`✓ Carbon credits awarded: ${creditId}`);
-    console.log(`  Amount: ${carbonSequestered} tons CO2`);
-    console.log(`  Project type: ${projectType}`);
-    
-    // Mint carbon credit NFTs
-    console.log("\nMinting carbon credit NFTs...");
-    const creditMetadata = {
-      creditId,
-      entity: this.operatorId,
-      amount: carbonSequestered,
-      vintage: 2025,
-      projectType,
-      verificationMethod: "third_party_audit",
-      certifications: ["Gold Standard", "Organic"],
-      location: "Kisumu County, Kenya"
-    };
-    
-    const metadataBuffer = Buffer.from(JSON.stringify(creditMetadata));
-    const [serial] = await this.tokenService.mintNFT(
-      this.resources.carbonCreditNFTId!,
-      [metadataBuffer],
-      this.operatorKey
-    );
-    console.log(`✓ Carbon credit NFT minted: Serial #${serial}`);
-    
-    // Record on HCS
-    console.log("\nRecording carbon credits on HCS...");
-    await this.consensusService.submitCarbonCredits({
-      entityId: this.operatorId,
-      carbonSequestration: carbonSequestered,
-      creditsAwarded: carbonSequestered,
-      verificationMethod: "third_party_audit",
-      timestamp: Date.now()
-    });
-    console.log("✓ Carbon credits recorded on HCS");
-    
-    const creditValue = carbonSequestered * 18; // $18 per credit
-    console.log(`\nEstimated market value: $${creditValue.toFixed(2)}`);
-  }
-  
-  /**
-   * Step 8: Generate summary report
+   * Step 5: Generate summary report
    */
   async generateSummaryReport(): Promise<void> {
-    console.log("\n=== Step 8: Summary Report ===\n");
+    console.log("\n=== Step 5: Summary Report ===\n");
     
     console.log("📊 HederaOps Implementation Summary\n");
     
@@ -474,13 +338,10 @@ class HederaOpsWorkflow {
       console.log("🚀 Starting HederaOps Complete Workflow");
       console.log("==========================================");
       
-      await this.createTokens();
+      // await this.createTokens();
       await this.deployContracts();
       await this.createFarmerEntity();
       const harvestId = await this.recordHarvestWorkflow();
-      await this.salesContractWorkflow(harvestId);
-      await this.healthcareIntegrationWorkflow();
-      await this.sustainabilityWorkflow();
       await this.generateSummaryReport();
       
       console.log("🎉 Workflow completed successfully!");
@@ -492,8 +353,11 @@ class HederaOpsWorkflow {
   }
 }
 
-// Run the workflow
-if (require.main === module) {
+// ES Module equivalent of require.main === module
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+
+// Run the workflow if this is the main module
+if (isMainModule) {
   const workflow = new HederaOpsWorkflow();
   workflow.run().catch(console.error);
 }

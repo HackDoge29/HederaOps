@@ -15,7 +15,7 @@ import {
   CustomFixedFee,
   Hbar
 } from "@hashgraph/sdk";
-import { HederaClientManager } from "./config";
+import { HederaClientManager } from "./config.js";
 
 export interface TokenConfig {
   name: string;
@@ -62,7 +62,7 @@ export class HederaTokenService {
       .setSupplyKey(config.supplyKey || config.adminKey)
       .setTokenType(TokenType.FungibleCommon)
       .setSupplyType(TokenSupplyType.Finite)
-      .setMaxSupply(1_000_000_000); // 1 billion HOPS
+      .setMaxSupply(1_000_000_000); // 1 billion tokens (max supply in whole tokens)
     
     if (config.pauseKey) {
       transaction.setPauseKey(config.pauseKey);

@@ -6,7 +6,7 @@ import {
   PrivateKey,
   TopicUpdateTransaction
 } from "@hashgraph/sdk";
-import { HederaClientManager } from "./config";
+import { HederaClientManager } from "./config.js";
 
 export interface TopicConfig {
   memo: string;
@@ -70,7 +70,7 @@ export class HederaConsensusService {
       
       return {
         transactionId: response.transactionId.toString(),
-        sequenceNumber: receipt.topicSequenceNumber.toNumber()
+        sequenceNumber: receipt.topicSequenceNumber!.toNumber()  // Non-null assertion: safe in success path
       };
     }
     
@@ -79,7 +79,7 @@ export class HederaConsensusService {
     
     return {
       transactionId: response.transactionId.toString(),
-      sequenceNumber: receipt.topicSequenceNumber.toNumber()
+      sequenceNumber: receipt.topicSequenceNumber!.toNumber()  // Non-null assertion: safe in success path
     };
   }
   
@@ -105,9 +105,6 @@ export class HederaConsensusService {
         location: data.location
       }
     };
-    
-    // In production, calculate hash of previous message
-    // message.previousHash = await this.getLastMessageHash(topicId);
     
     // Get topic ID from farmer entity
     const topicId = await this.getEntityTopicId(data.farmerId);
@@ -227,7 +224,6 @@ export class HederaConsensusService {
   
   // Helper method 
   private async getEntityTopicId(entityId: string): Promise<string> {
-
     return "0.0.123456";
   }
 }

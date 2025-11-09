@@ -1,15 +1,22 @@
 # HederaOps
 HederaOps is Africa's first comprehensive Distributed Ledger Technology (DLT) operations platform, built on the Hedera network. It unifies healthcare, agriculture, supply chain, and sustainability management into one seamless, interoperable ecosystem.
 
-Testnet Deployments:
+### Testnet Deployments:
 
 ORCHESTRATOR_CONTRACT=0.0.7188405
+
 AGRICULTURE_CONTRACT=0.0.7188458
+
 HEALTHCARE_CONTRACT=0.0.7188460
+
 SUSTAINABILITY_CONTRACT=0.0.7188468
+
 HOPSToken=0.0.7185179
+
 AGRIToken=0.0.7185180
+
 FarmerNFT=0.0.7185181
+
 CarbonCreditNFT=0.0.7185182
 
 
@@ -585,25 +592,24 @@ npm run verify -- --network testnet --contract-id 0.0.123456
 
 ## 🗺️ Roadmap
 
-### Q1 2025 (Current)
+### Q4 2025 (Current)
 - ✅ Core Hedera services integration
 - ✅ Smart contract deployment
 - ✅ Testnet launch
 
 
-### Q2 2025
+### Q1 2026
 - [ ] Mainnet deployment
 - [ ] Mobile app launch (iOS/Android)
 - [ ] 100 enterprise pilots
 - [ ] 5 African countries
 
-### Q3 2025
+### Q2 2026
 - [ ] API marketplace
 - [ ] Third-party integrations
 - [ ] Developer grants program
-- [ ] 1,000 active users
 
-### Q4 2025
+### Q3 2026
 - [ ] Cross-chain bridges
 - [ ] AI analytics integration
 - [ ] Government partnerships
@@ -623,9 +629,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Hedera Hashgraph** for enterprise-grade DLT infrastructure
 - **Hashgraph Association** for organizing Hedera Africa Hackathon 2025
-- **Exponential Science** for hackathon co-organization
 - **OpenZeppelin** for secure smart contract libraries
-- **African tech community** for inspiration and feedback
+- **Hedera African Community** for inspiration and feedback
 
 ---
 
